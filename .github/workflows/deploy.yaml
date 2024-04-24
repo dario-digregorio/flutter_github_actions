@@ -11,12 +11,8 @@ jobs:
     runs-on: self-hosted
     env:
       STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
-      KEY_PATH: ${{ secrets.KEY_PATH }}
-      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
       KEY_JKS: ${{ secrets.KEY_JKS }}
       SEC_JSON: ${{ secrets.SEC_JSON }}
-      SEC_PATH: ${{ secrets.SEC_PATH }}
 
     steps:
       - uses: actions/checkout@v3
@@ -24,33 +20,25 @@ jobs:
         with:
           distribution: "zulu"
           java-version: "17"
-      - name: Decode key file
-        run: printenv KEY_JKS | openssl base64 -d -out key.jks
-      - name: Decode sec json file
-        run: printenv SEC_JSON | openssl base64 -d -out sec.json
-      - name: Create .env file
+      - name: Create Key properties file
         run: |
-              echo "" > .env.default
-              cat .env.default
+            cat << EOF > "./android/key.properties"
+            storePassword=${{ secrets.STORE_PASSWORD }}
+            keyPassword=${{ secrets.STORE_PASSWORD }}
+            keyAlias=upload
+            storeFile=./key.jks
+            EOF
+      - name: Decode key file
+        run: echo "${{ secrets.KEY_JKS }}" | openssl base64 -d -out key.jks
+      - name: Decode sec json file
+        run: echo "${{ secrets.SEC_JSON }}" | openssl base64 -d -out ./android/sec.json
       - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.16.5'
-          channel: 'stable'
-          cache: true
-      - run: flutter clean
       - run: flutter packages pub get
-      - run: flutter gen-l10n
-      - run: flutter pub run build_runner build --delete-conflicting-outputs
-      - run: flutter build appbundle --flavor ${{ needs.setup.outputs.environment }} --obfuscate --split-debug-info=build/app/outputs/symbols --release --bundle-sksl-path tools/warmup/flutter_android.sksl.json lib/main${{ needs.setup.outputs.main_file }}.dart
-      - uses: actions/upload-artifact@v3
-        with:
-          retention-days: 14
-          name: symbols-android-${{ needs.setup.outputs.version_number }}+${{ needs.setup.outputs.build_number }}
-          path: build/app/outputs/symbols
+      - run: flutter build appbundle --release
       - name: Fastlane Action
         uses: maierj/fastlane-action@v2.3.0
         with:
-          lane: ${{ needs.setup.outputs.environment }}
+          lane: deploy
           subdirectory: android
 
   build_ios:
@@ -61,46 +49,14 @@ jobs:
     runs-on: self-hosted
     env:
       FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD: ${{ secrets.FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD }}
-      FASTLANE_PASSWORD: ${{ secrets.FASTLANE_PASSWORD }}
 
     steps:
     - uses: actions/checkout@v3
-    - name: Create .env file
-      run: |
-            echo "" > .env.default
-            cat .env.default
     - uses: subosito/flutter-action@v2
-      with:
-        channel: 'stable'
-        flutter-version: '3.16.5'
-        cache: true
-    - run: flutter --version
-    - run: flutter clean
     - run: flutter packages pub get
-    - run: dart pub global activate flutterfire_cli 0.3.0-dev.19 --overwrite
-    - run: flutter gen-l10n
-    - run: flutter pub run build_runner build --delete-conflicting-outputs
-    - run: flutter build ios --flavor ${{ needs.setup.outputs.environment }} --obfuscate --split-debug-info=build/app/outputs/symbols --release --no-codesign --bundle-sksl-path tools/warmup/flutter_ios.sksl.json lib/main${{ needs.setup.outputs.main_file }}.dart
-    - uses: actions/upload-artifact@v3
-      with:
-        retention-days: 14
-        name: symbols-ios-${{ needs.setup.outputs.version_number }}+${{ needs.setup.outputs.build_number }}
-        path: build/app/outputs/symbols
+    - run: flutter build ipa --release
     - name: Deploy iOS Beta to TestFlight via Fastlane
       uses: maierj/fastlane-action@v2.3.0
       with:
         lane: ${{ needs.setup.outputs.environment }}
         subdirectory: ios
-      env:
-        APP_STORE_CONNECT_TEAM_ID: '${{ secrets.APP_STORE_CONNECT_TEAM_ID }}'
-        DEVELOPER_APP_ID: '${{ secrets.DEVELOPER_APP_ID }}'
-        DEVELOPER_APP_IDENTIFIER: '${{ secrets.DEVELOPER_APP_IDENTIFIER }}'
-        FASTLANE_APPLE_ID: '${{ secrets.FASTLANE_APPLE_ID }}'
-        MATCH_PASSWORD: '${{ secrets.MATCH_PASSWORD }}'
-        GIT_AUTHORIZATION: '${{ secrets.GIT_AUTHORIZATION }}'
-        PROVISIONING_PROFILE_SPECIFIER: '${{ secrets.PROVISIONING_PROFILE_SPECIFIER }}'
-        TEMP_KEYCHAIN_PASSWORD: '${{ secrets.TEMP_KEYCHAIN_PASSWORD }}'
-        TEMP_KEYCHAIN_USER: '${{ secrets.TEMP_KEYCHAIN_USER }}'
-        APPLE_KEY_ID: '${{ secrets.APPLE_KEY_ID }}'
-        APPLE_ISSUER_ID: '${{ secrets.APPLE_ISSUER_ID }}'
-        APPLE_KEY_CONTENT: '${{ secrets.APPLE_KEY_CONTENT }}'
