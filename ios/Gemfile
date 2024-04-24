@@ -1,6 +1,7 @@
 source "https://rubygems.org"
 
 gem "fastlane"
+gem "cocoapods"
 
 source "https://rubygems.pkg.github.com/tianhaoz95" do
     gem "fastlane-plugin-flutter_version", "1.1.15"
