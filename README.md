@@ -128,52 +128,97 @@ Depending on your setup, you might need to adjust the actions to match your requ
 
 Now that Fastlane is set up and you successfully run the lanes manually on you device, let's automate the deployment process with GitHub Actions.
 
+> Note: To make the guide more simple we will use a self-hosted runner in this guide. You can also use the GitHub hosted runners. Make sure to adjust the paths and the Fastfile accordingly and to also add all necessary tools to the runner.
+
 Now, let's automate these processes with GitHub Actions:
 
-1. In your GitHub repo, navigate to `Actions` > `New workflow`.
-2. Choose "Set up a workflow yourself" and name it something like `flutter_ci_cd.yml`.
-3. Replace the content with the following:
-
+1. In your GitHub repo, create a new directory `.github/workflows`.
+2. Create a new file in this directory, e.g. `deploy.yml`.
+3. We need to create some secrets. Go to your repository settings and add the following secrets:
+    - `STORE_PASSWORD`: The password for your keystore file.
+    - `KEY_JKS`: The base64 encoded keystore file.
+    - `SEC_JSON`: The base64 encoded service account JSON file.
+    - `FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD`: The app-specific password for your Apple Developer account.
+  
+    To encode the files you can use the following command:
+    ```bash
+    cat path/to/your/file | openssl base64
+    ```
+    Copy the output and add it as a secret.
+4. Add the following content to the `deploy.yml` file:
     ```yaml
-    name: Flutter CI/CD
-
+    name: Build and Deploy
     on:
-      push:
-        branches:
-          - main
+      workflow_dispatch:
 
     jobs:
-      build-and-deploy:
-        runs-on: ubuntu-latest
+      build_android:
+        concurrency:
+          group: ${{ github.workflow }}-${{ github.ref }}-android
+          cancel-in-progress: true
+        name: Build and Deploy Android
+        runs-on: self-hosted
+        env:
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }} # The password for your keystore file
+          KEY_JKS: ${{ secrets.KEY_JKS }} # The base64 encoded keystore file
+          SEC_JSON: ${{ secrets.SEC_JSON }} # The base64 encoded service account JSON file
+
         steps:
-        - uses: actions/checkout@v2
-        - uses: actions/setup-java@v1
+          - uses: actions/checkout@v3
+          - uses: actions/setup-java@v3.3.0
+            with:
+              distribution: "zulu"
+              java-version: "17"
+          - name: Create Key properties file
+            run: |
+                cat << EOF > "./android/key.properties"
+                storePassword=${{ secrets.STORE_PASSWORD }}
+                keyPassword=${{ secrets.STORE_PASSWORD }}
+                keyAlias=upload
+                storeFile=./key.jks
+                EOF
+          - name: Decode key file
+            run: echo "${{ secrets.KEY_JKS }}" | openssl base64 -d -out ./android/app/key.jks
+          - name: Decode sec json file
+            run: echo "${{ secrets.SEC_JSON }}" | openssl base64 -d -out ./android/sec.json
+          - uses: subosito/flutter-action@v2
+          - run: flutter packages pub get
+          - run: flutter build appbundle --release
+          - name: Fastlane Action
+            uses: maierj/fastlane-action@v2.3.0
+            with:
+              lane: deploy
+              subdirectory: android
+
+      build_ios:
+        concurrency:
+          group: ${{ github.workflow }}-${{ github.ref }}-ios
+          cancel-in-progress: true
+        name: Build and Deploy iOS
+        runs-on: self-hosted
+        env:
+          FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD: ${{ secrets.FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD }}
+
+        steps:
+        - uses: actions/checkout@v3
+        - uses: subosito/flutter-action@v2
+        - run: flutter packages pub get
+        - run: flutter build ipa --release
+        - name: Deploy iOS Beta to TestFlight via Fastlane
+          uses: maierj/fastlane-action@v2.3.0
           with:
-            java-version: '12.x'
-        - uses: subosito/flutter-action@v1
-          with:
-            flutter-version: '2.x'
-        - name: Install Fastlane
-          run: |
-            sudo gem install fastlane
-        - name: Build and Deploy iOS
-          if: github.ref == 'refs/heads/main'
-          run: |
-            cd ios
-            fastlane ios
-        - name: Build and Deploy Android
-          if: github.ref == 'refs/heads/main'
-          run: |
-            cd android
-            fastlane android
+            lane: deploy
+            subdirectory: ios
     ```
 
-4. Adjust the `flutter-version` as per your project's requirements.
+    Let me break down what this workflow does. There are two jobs, `build_android` and `build_ios`. Each job builds and deploys the app to the PlayStore and AppStore respectively. The jobs are triggered manually by the `workflow_dispatch` event.
+    To build the Android app we need to create the `key.properties` file and decode the keystore and service account JSON file. We then build the app bundle and run the Fastlane action with the `deploy` lane. The iOS job is simpler, we just build the IPA file and run the Fastlane action with the `deploy` lane.
 
-### Step 4: Commit and Push
+5. Adjust the `flutter-version` as per your project's requirements.
+6. Trigger the workflow manually by going to the Actions tab in your GitHub repository and selecting the `Build and Deploy` workflow. Click on the `Run workflow` button and select the branch you want to deploy.
+7. Wait and watch the magic happen! 🎩✨
 
-Commit and push these changes to your GitHub repository. The `flutter_ci_cd.yml` GitHub Action will trigger on each push to the main branch, automating your build and deployment process.
-
+Whenever you want to deploy a new version of your app, simply edit the version in the `pubspec.yaml` and push your changes to the main branch and trigger the workflow manually. The workflow will build and deploy your app to the AppStore and PlayStore automatically.
 ### Conclusion
 
-And that's it! You've now set up a CI/CD pipeline for your Flutter app using Fastlane and GitHub Actions. This setup will automatically build and deploy your app to the AppStore and PlayStore whenever you push changes to the main branch. Time to kick back, relax, and let automation handle the repetitive tasks. Happy coding! 🚀
+And that's it! You've now set up a CI/CD pipeline for your Flutter app using Fastlane and GitHub Actions. This setup will automatically build and deploy your app to the AppStore and PlayStore. Time to kick back, relax, and let automation handle the repetitive tasks. Happy coding! 🚀
