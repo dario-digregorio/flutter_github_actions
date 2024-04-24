@@ -29,7 +29,7 @@ jobs:
             storeFile=./key.jks
             EOF
       - name: Decode key file
-        run: echo "${{ secrets.KEY_JKS }}" | openssl base64 -d -out key.jks
+        run: echo "${{ secrets.KEY_JKS }}" | openssl base64 -d -out ./android/app/key.jks
       - name: Decode sec json file
         run: echo "${{ secrets.SEC_JSON }}" | openssl base64 -d -out ./android/sec.json
       - uses: subosito/flutter-action@v2
@@ -58,5 +58,5 @@ jobs:
     - name: Deploy iOS Beta to TestFlight via Fastlane
       uses: maierj/fastlane-action@v2.3.0
       with:
-        lane: ${{ needs.setup.outputs.environment }}
+        lane: deploy
         subdirectory: ios
