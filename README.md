@@ -1,7 +1,11 @@
-# Flutter App CI/CD with Fastlane and GitHub Actions
+# Flutter App CI/CD with Fastlane and GitHub Actions: The Basics
+
+![Flutter CI/CD](docs/flutter_cicd.png)
 ## Introduction
 
-If you're looking to streamline your Flutter app's deployment to the AppStore and PlayStore, you're in the right spot. We'll use Fastlane and GitHub Actions to automate our workflow. By the end of this tutorial, you'll have a fully automated pipeline that builds, tests, versions and deploys your Flutter app to your preferred App Stores. This Guide will skip all the basic setup and configuration of Fastlane and GitHub Actions, and will focus on the Flutter and Workflow specific parts of the setup.
+If you're looking to streamline your Flutter app's deployment to the AppStore and PlayStore, you're in the right spot. We'll use Fastlane and GitHub Actions to automate our workflow. By the end of this tutorial, you'll have a automated pipeline that builds and deploys your Flutter app to your preferred App Stores. This Guide will skip all the setup and configuration of Fastlane and GitHub Actions, and will focus on the Flutter and Workflow specific parts of the setup.
+
+Repository: [Flutter App CI/CD with Fastlane and GitHub Actions: The Basics](https://github.com/dario-digregorio/flutter_github_actions)
 
 ## Prerequisites
 
@@ -26,11 +30,10 @@ When you finished all the prerequisites, you should have following project struc
     - Fastfile
 ```
 > Note: In this guide I will use the basic fastlane commands. It is highly recommended to use Fastlane with `bundle`. Read more about it in the Fastlane documentation
-
+> 
 ---
----
 
-## Step 1: Setting Up The Fastfiles and Environment
+## Setting Up The Fastfiles and Environment
 Now we will setup the Fastfiles for both iOS and Android. We will define lanes for deploying the app to the AppStore and PlayStore.
 
 ### Android
@@ -53,7 +56,6 @@ Now we will setup the Fastfiles for both iOS and Android. We will define lanes f
 You created the Service Account JSON file in the [CD Flutter Guide](https://docs.flutter.dev/deployment/cd#local-setup). Make sure to exclude the file from your git repository.
 
 3. Open `android/fastlane/Fastfile` and define the `deploy` lane (delete the existing content):
-
     ```ruby
     default_platform(:android)
 
@@ -81,6 +83,9 @@ You created the Service Account JSON file in the [CD Flutter Guide](https://docs
 8. Run `fastlane deploy` to start the lane and deploy your app to the PlayStore. 
 
 Depending on your setup, you might need to adjust the `upload_to_play_store` action to match your requirements.
+
+**Google Play Store Release Dashboard**
+![Play Store Deploy](docs/deploy_playstore.png)
 
 ### iOS
 
@@ -115,7 +120,7 @@ Depending on your setup, you might need to adjust the `upload_to_play_store` act
       end
     end
     ```
-    More information about [`pilot`](https://docs.fastlane.tools/actions/pilot/) and [`gym`](https://docs.fastlane.tools/actions/gym/) can be found in the Fastlane documentation.
+    More information about [`pilot`](https://docs.fastlane.tools/actions/pilot/) can be found in the Fastlane documentation. Depending on your setup you might need to use actions like [`gym`](https://docs.fastlane.tools/actions/gym/) or [`match`](https://docs.fastlane.tools/actions/match/) to build the IPA file.
 4. Run `bundle install` in the `ios` directory to install the required gems.
 5. Run `fastlane deliver init` to initialize the AppStore metadata. With this you can update the metadata like app description or screenshots without leaving your IDE. You can skip this step if you don't want to upload metadata.
 6. Make sure you have already created an app in AppStore Connect.
@@ -124,7 +129,10 @@ Depending on your setup, you might need to adjust the `upload_to_play_store` act
 
 Depending on your setup, you might need to adjust the actions to match your requirements. Consider also to use the actions 
 
-### Step 2: Setting Up GitHub Actions
+**AppStore TestFlight Builds Dashboard**
+
+![AppStore Deploy](docs/deploy_appstore.png)
+### Setting Up GitHub Actions
 
 Now that Fastlane is set up and you successfully run the lanes manually on you device, let's automate the deployment process with GitHub Actions.
 
@@ -216,9 +224,18 @@ Now, let's automate these processes with GitHub Actions:
 
 5. Adjust the `flutter-version` as per your project's requirements.
 6. Trigger the workflow manually by going to the Actions tab in your GitHub repository and selecting the `Build and Deploy` workflow. Click on the `Run workflow` button and select the branch you want to deploy.
-7. Wait and watch the magic happen! 🎩✨
+7. Wait and watch the magic happen! ✨ 
+   
+   ![GitHub Actions](docs/deploy.png)
 
 Whenever you want to deploy a new version of your app, simply edit the version in the `pubspec.yaml` and push your changes to the main branch and trigger the workflow manually. The workflow will build and deploy your app to the AppStore and PlayStore automatically.
 ### Conclusion
 
-And that's it! You've now set up a CI/CD pipeline for your Flutter app using Fastlane and GitHub Actions. This setup will automatically build and deploy your app to the AppStore and PlayStore. Time to kick back, relax, and let automation handle the repetitive tasks. Happy coding! 🚀
+
+And that's it! You've now set up a CI/CD pipeline for your Flutter app using Fastlane and GitHub Actions. This setup will automatically build and deploy your app to the AppStore and PlayStore. Time to kick back, relax, and let automation handle the repetitive tasks.
+
+We are still not done here. The next guide will cover how to automate the versioning, testing and  of your app with Fastlane. Stay tuned! Happy coding! 🚀
+
+### About the Author
+#### Dario Digregorio - Senior Flutter Developer
+Dario is a passionate and innovative Senior Flutter Developer at [NTT Data](https://de.nttdata.com/) with a keen interest in crafting seamless user experiences using cutting-edge technology. You can find him on [LinkedIn](https://www.linkedin.com/in/dario-digregorio-064696241/) and [GitHub](https://github.com/dario-digregorio).
