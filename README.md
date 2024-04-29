@@ -229,8 +229,11 @@ Now, let's automate these processes with GitHub Actions:
    ![GitHub Actions](docs/deploy.png)
 
 Whenever you want to deploy a new version of your app, simply edit the version in the `pubspec.yaml` and push your changes to the main branch and trigger the workflow manually. The workflow will build and deploy your app to the AppStore and PlayStore automatically.
-### Conclusion
 
+### Build Number
+For some projects it makes sense to use the build number which is currently used on the respective platform. For this there are actions to get the build number from the AppStore and PlayStore. You can use the `app_store_build_number` and `google_play_track_version_codes` actions to get the build number. You can then use this build number to set the version code in the Fastfile.
+
+### Conclusion
 
 And that's it! You've now set up a CI/CD pipeline for your Flutter app using Fastlane and GitHub Actions. This setup will automatically build and deploy your app to the AppStore and PlayStore. Time to kick back, relax, and let automation handle the repetitive tasks.
 
@@ -353,7 +356,7 @@ We will create a new workflow that will bump the `pubspec.yaml` version, create 
             fetch-depth: 0 # Fetch all history for tags and branches
             token: ${{ secrets.PAT }}
     ```
-    Since the `checkout` action uses the `GITHUB_TOKEN` by default, we need to add the `PAT` token to the action to trigger the release workflow. We then can remove the `permissions` part.
+    Since the `checkout` action uses the `GITHUB_TOKEN` by default, we need to add the `PAT` token to the action to trigger the release workflow. We then can remove the `permissions` part. It is better to trigger the workflow only manually otherwise the workflow will run a loop.
 4. Now trigger again the tag workflow and you should see a new release in your repository after the `Release Workflow` finished successfully.
 5. To trigger the `Build and Deploy` workflow whenever a new tag is created. Add this to the `deploy.yml` file:
     ```yaml
@@ -368,7 +371,6 @@ We will create a new workflow that will bump the `pubspec.yaml` version, create 
 ## Recap
 
 So how does the whole process look like now? Whenever you want to release a new version of your app, you can trigger the `Tag Release` workflow manually. You can choose between `major`, `minor`, `patch` and `none`. The workflow will bump the version in the `pubspec.yaml` file, create a new commit and tag and push the changes to the repository. This will trigger the `Release Workflow` which will create a new release with the tag name and the generated release notes. We then want to deploy this version by triggering the `Build and Deploy` workflow manually and selecting the new tag in the ref input. This way you can pinpoint the exact version you want to deploy.
-
 
 ## Conclusion
 
