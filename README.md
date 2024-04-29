@@ -1,11 +1,11 @@
-# Flutter App CI/CD with Fastlane and GitHub Actions: The Basics (Part 1)
+# Flutter CI/CD with Fastlane and GitHub Actions: The Basics (Part 1)
 
 ![Flutter CI/CD](docs/flutter_cicd.png)
 ## Introduction
 
 If you're looking to streamline your Flutter app's deployment to the AppStore and PlayStore, you're in the right spot. We'll use Fastlane and GitHub Actions to automate our workflow. By the end of this tutorial, you'll have a automated pipeline that builds and deploys your Flutter app to your preferred App Stores. This Guide will skip all the setup and configuration of Fastlane and GitHub Actions, and will focus on the Flutter and Workflow specific parts of the setup.
 
-Repository: [Flutter App CI/CD with Fastlane and GitHub Actions: The Basics](https://github.com/dario-digregorio/flutter_github_actions)
+Repository: [Flutter App CI/CD with Fastlane and GitHub Actions](https://github.com/dario-digregorio/flutter_github_actions)
 
 ## Prerequisites
 
@@ -245,8 +245,105 @@ Dario is a passionate and innovative Senior Flutter Developer at [NTT Data](http
 ---
 ---
 
-# Flutter App CI/CD with Fastlane and GitHub Actions: Releases (Part 2)
+# Flutter CI/CD with Fastlane and GitHub Actions: Releases (Part 2)
 
 ![Flutter CI/CD](docs/flutter_cicd.png)
 
+## Introduction
+
 In the previous article, we have seen how to setup Fastlane and GitHub Actions for the example app. In this article, we will see how to automate the release process further with versioning, GitHub Releases and promoting using Fastlane and GitHub Actions.
+
+Repository: [Flutter App CI/CD with Fastlane and GitHub Actions](https://github.com/dario-digregorio/flutter_github_actions)
+
+## Prerequisites
+- Follow the first part of the guide to setup Fastlane and GitHub Actions.
+
+## Creating the Tag Workflow
+
+We will create a new workflow that will bump the `pubspec.yaml` version, create a new tag and pushes the changes to the repository.
+
+1. Create a new file in the `.github/workflows` directory, e.g. `tag.yml`.
+2. Add the following content to the `tag.yml` file:
+    ```yaml
+      name: Tag Release
+      on:
+          workflow_dispatch:
+              inputs:
+                action:
+                  type: choice
+                  description: Action type
+                  default: none
+                  options:
+                  - major
+                  - minor
+                  - patch
+                  - none
+      jobs:
+        tag:
+          concurrency:
+            group: ${{ github.workflow }}-${{ github.ref }}
+            cancel-in-progress: true
+          name: Tag
+          runs-on: self-hosted
+          permissions:
+              # Give the default GITHUB_TOKEN write permission to commit and push the
+              # added or changed files to the repository.
+              contents: write
+
+          steps:
+            - uses: actions/checkout@v4
+              with:
+                  ref: ${{ github.head_ref }}
+                  fetch-depth: 0 # Fetch all history for tags and branches
+            - uses: stikkyapp/update-pubspec-version@v2
+              id: update-pubspec-version
+              with:
+                  strategy: ${{ github.event.inputs.action }}
+                  bump-build: true
+            - uses: stefanzweifel/git-auto-commit-action@v5
+              with:
+                commit_message: "Bump version to ${{ steps.update-pubspec-version.outputs.new-version }}"
+                commit_user_name: GitHub Actions
+                tagging_message: release/v${{ steps.update-pubspec-version.outputs.new-version }}
+      ```
+    This workflow can be triggered manually and accepts an input to which action you want to perform. There are four options: `major`, `minor`, `patch` and `none`. Each action will bump the version accordingly. See [this](https://semver.org/) for more information about semantic versioning. We use the `update-pubspec-version` action to bump the version in the `pubspec.yaml` file and the `git-auto-commit-action` to commit the changes and create a new tag with the format `release/v1.0.0`. Each workflow run will always bump the build number.
+3. Trigger the workflow manually by going to the Actions tab in your GitHub repository and selecting the `Tag Release` workflow. Click on the `Run workflow` button and select the branch you want to tag.
+4. Wait and watch the magic happen! ✨ Now you should see a new commit and tag in your repository.
+
+## Creating the Release Workflow
+1. Create a new file in the `.github/workflows` directory, e.g. `release.yml`.
+2. Add the following content to the `release.yml` file:
+    ```yaml
+    name: Create Release
+    on: 
+      push:
+        tags:
+        - 'release/*'
+
+    jobs:
+      release:
+        concurrency:
+          group: ${{ github.workflow }}-${{ github.ref }}-release
+          cancel-in-progress: true
+        runs-on: self-hosted
+
+        steps:
+        - uses: actions/checkout@v4
+        - name: Create Release
+          uses: ncipollo/release-action@v1
+          with:
+            name: ${{ github.ref_name }}
+            tag: ${{ github.ref }}
+            generateReleaseNotes: true
+    ```
+    This workflow will be triggered whenever a new tag with the format `release/*` is pushed to the repository. It will create a new release with the tag name and the generated release notes. We use the `release-action` to create the release. The action will generate the release notes based on the commit messages since the last tag.
+3. We are not done yet. Triggering the tag workflow won't trigger the release workflow yet. This is because of a restriction of GitHub.  Follow this [guide](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic) to create a token with the `repo` scope. Add the token as a secret in your repository with the name `PAT`. Now we need to add the token to the `checkout` action in the `tag.yml` file:
+    ```yaml
+    - uses: actions/checkout@v4
+      with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0 # Fetch all history for tags and branches
+          token: ${{ secrets.PAT }}
+    ```
+4. Now trigger again the tag workflow and you should see a new release in your repository after the `Release Workflow` finished successfully.
+
