@@ -1,4 +1,4 @@
-# Flutter App CI/CD with Fastlane and GitHub Actions: The Basics
+# Flutter App CI/CD with Fastlane and GitHub Actions: The Basics (Part 1)
 
 ![Flutter CI/CD](docs/flutter_cicd.png)
 ## Introduction
@@ -239,3 +239,14 @@ We are still not done here. The next guide will cover how to automate the versio
 ### About the Author
 #### Dario Digregorio - Senior Flutter Developer
 Dario is a passionate and innovative Senior Flutter Developer at [NTT Data](https://de.nttdata.com/) with a keen interest in crafting seamless user experiences using cutting-edge technology. You can find him on [LinkedIn](https://www.linkedin.com/in/dario-digregorio-064696241/) and [GitHub](https://github.com/dario-digregorio).
+
+
+---
+---
+---
+
+# Flutter App CI/CD with Fastlane and GitHub Actions: Releases (Part 2)
+
+![Flutter CI/CD](docs/flutter_cicd.png)
+
+In the previous article, we have seen how to setup Fastlane and GitHub Actions for the example app. In this article, we will see how to automate the release process further with versioning, GitHub releases and promoting using Fastlane and GitHub Actions.
