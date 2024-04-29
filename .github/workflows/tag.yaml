@@ -33,7 +33,7 @@ jobs:
         with:
             strategy: ${{ github.event.inputs.action }}
             bump-build: true
-      - run: git tag -a "release/v${{ steps.update-pubspec-version.outputs.new-version }}"" -m "Release ${{ steps.update-pubspec-version.outputs.new-version }}"
+      - run: git tag -a "release/v${{ steps.update-pubspec-version.outputs.new-version }}" -m "Release ${{ steps.update-pubspec-version.outputs.new-version }}"
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Bump version to ${{ steps.update-pubspec-version.outputs.new-version }}"
