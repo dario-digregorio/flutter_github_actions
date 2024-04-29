@@ -27,6 +27,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
             ref: ${{ github.head_ref }}
+            fetch-depth: 0 # Fetch all history for tags and branches
       - uses: stikkyapp/update-pubspec-version@v2
         id: update-pubspec-version
         with:
@@ -36,3 +37,9 @@ jobs:
         with:
           commit_message: "Bump version to ${{ steps.update-pubspec-version.outputs.new-version }}"
           commit_user_name: GitHub Actions
+      - uses: rickstaa/action-create-tag@v1
+        id: tag_create
+        with:
+            tag: "release/v${{ steps.update-pubspec-version.outputs.new-version }}"
+            tag_exists_error: false
+            message: "Release ${{ steps.update-pubspec-version.outputs.new-version }}"
