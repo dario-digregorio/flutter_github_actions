@@ -33,13 +33,9 @@ jobs:
         with:
             strategy: ${{ github.event.inputs.action }}
             bump-build: true
+      - run: git tag -a "release/v${{ steps.update-pubspec-version.outputs.new-version }}"" -m "Release ${{ steps.update-pubspec-version.outputs.new-version }}"
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Bump version to ${{ steps.update-pubspec-version.outputs.new-version }}"
           commit_user_name: GitHub Actions
-      - uses: rickstaa/action-create-tag@v1
-        id: tag_create
-        with:
-            tag: "release/v${{ steps.update-pubspec-version.outputs.new-version }}"
-            tag_exists_error: false
-            message: "Release ${{ steps.update-pubspec-version.outputs.new-version }}"
+          tagging_message: "Release ${{ steps.update-pubspec-version.outputs.new-version }}"
