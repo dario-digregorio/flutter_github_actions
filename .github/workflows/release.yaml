@@ -1,0 +1,21 @@
+name: Create Release
+on: 
+  push:
+    tags:
+    - 'release/*'
+
+jobs:
+  release:
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-release
+      cancel-in-progress: true
+    runs-on: self-hosted
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Create Release
+      uses: ncipollo/release-action@v1
+      with:
+        name: ${{ github.ref_name }}
+        tag: ${{ github.ref }}
+        generateReleaseNotes: true
