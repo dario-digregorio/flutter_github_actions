@@ -339,11 +339,38 @@ We will create a new workflow that will bump the `pubspec.yaml` version, create 
     This workflow will be triggered whenever a new tag with the format `release/*` is pushed to the repository. It will create a new release with the tag name and the generated release notes. We use the `release-action` to create the release. The action will generate the release notes based on the commit messages since the last tag.
 3. We are not done yet. Triggering the tag workflow won't trigger the release workflow yet. This is because of a restriction of GitHub.  Follow this [guide](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic) to create a token with the `repo` scope. Add the token as a secret in your repository with the name `PAT`. Now we need to add the token to the `checkout` action in the `tag.yml` file:
     ```yaml
-    - uses: actions/checkout@v4
-      with:
-          ref: ${{ github.head_ref }}
-          fetch-depth: 0 # Fetch all history for tags and branches
-          token: ${{ secrets.PAT }}
+      # Remove this part
+    permissions:
+      # Give the default GITHUB_TOKEN write permission to commit and push the
+      # added or changed files to the repository.
+      contents: write
+      # Until here
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+            ref: ${{ github.head_ref }}
+            fetch-depth: 0 # Fetch all history for tags and branches
+            token: ${{ secrets.PAT }}
     ```
+    Since the `checkout` action uses the `GITHUB_TOKEN` by default, we need to add the `PAT` token to the action to trigger the release workflow. We then can remove the `permissions` part.
 4. Now trigger again the tag workflow and you should see a new release in your repository after the `Release Workflow` finished successfully.
+5. To trigger the `Build and Deploy` workflow whenever a new tag is created. Add this to the `deploy.yml` file:
+    ```yaml
+      on:
+        workflow_dispatch:
+        push:
+          tags:
+            - 'release/*'
+    ```
+    This will trigger the `Build and Deploy` workflow whenever the `Tag Workflow` finished successfully.
+
+## Recap
+
+So how does the whole process look like now? Whenever you want to release a new version of your app, you can trigger the `Tag Release` workflow manually. You can choose between `major`, `minor`, `patch` and `none`. The workflow will bump the version in the `pubspec.yaml` file, create a new commit and tag and push the changes to the repository. This will trigger the `Release Workflow` which will create a new release with the tag name and the generated release notes. We then want to deploy this version by triggering the `Build and Deploy` workflow manually and selecting the new tag in the ref input. This way you can pinpoint the exact version you want to deploy.
+
+
+## Conclusion
+
+And that's it! You've now set up a CI/CD pipeline for your Flutter app using Fastlane and GitHub Actions. This setup will automatically build and deploy your app to the AppStore and PlayStore. You've also automated the versioning, tagging and releasing process with GitHub Actions. Time to kick back, relax, and let automation handle the repetitive tasks.
 
