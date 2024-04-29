@@ -249,4 +249,4 @@ Dario is a passionate and innovative Senior Flutter Developer at [NTT Data](http
 
 ![Flutter CI/CD](docs/flutter_cicd.png)
 
-In the previous article, we have seen how to setup Fastlane and GitHub Actions for the example app. In this article, we will see how to automate the release process further with versioning, GitHub releases and promoting using Fastlane and GitHub Actions.
+In the previous article, we have seen how to setup Fastlane and GitHub Actions for the example app. In this article, we will see how to automate the release process further with versioning, GitHub Releases and promoting using Fastlane and GitHub Actions.
