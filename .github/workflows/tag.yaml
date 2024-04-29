@@ -27,6 +27,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
             ref: ${{ github.head_ref }}
+            ssh-key: "${{ secrets.PAT }}"
             fetch-depth: 0 # Fetch all history for tags and branches
       - uses: stikkyapp/update-pubspec-version@v2
         id: update-pubspec-version
