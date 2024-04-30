@@ -62,6 +62,7 @@ You created the Service Account JSON file in the [CD Flutter Guide](https://docs
     platform :android do
       desc "Deploy a new version to the Google Play"
       lane :deploy do
+        version = flutter_version()
         upload_to_play_store(
           track: 'internal', # Can be 'internal', 'alpha', 'beta', 'production'
           skip_upload_metadata: true, # Skip uploading metadata
@@ -69,8 +70,8 @@ You created the Service Account JSON file in the [CD Flutter Guide](https://docs
           skip_upload_screenshots: true, # Skip uploading screenshots
           release_status: "completed", # Can be 'draft', 'completed', 'halted'
           aab: '../build/app/outputs/bundle/release/app-release.aab', # Path to your AAB file
-          version_code: flutter_version()["version_code"], # From pubspec.yaml
-          version_name: flutter_version()["version_name"] + flutter_version()["version_code"],
+          version_code: version["version_code"], # From pubspec.yaml
+          version_name: version["version_name"] + version["version_code"],
         )
       end
     end
@@ -166,13 +167,9 @@ Now, let's automate these processes with GitHub Actions:
           cancel-in-progress: true
         name: Build and Deploy Android
         runs-on: self-hosted
-        env:
-          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }} # The password for your keystore file
-          KEY_JKS: ${{ secrets.KEY_JKS }} # The base64 encoded keystore file
-          SEC_JSON: ${{ secrets.SEC_JSON }} # The base64 encoded service account JSON file
 
         steps:
-          - uses: actions/checkout@v3
+          - uses: actions/checkout@v4
           - uses: actions/setup-java@v3.3.0
             with:
               distribution: "zulu"
@@ -180,15 +177,15 @@ Now, let's automate these processes with GitHub Actions:
           - name: Create Key properties file
             run: |
                 cat << EOF > "./android/key.properties"
-                storePassword=${{ secrets.STORE_PASSWORD }}
-                keyPassword=${{ secrets.STORE_PASSWORD }}
+                storePassword=${{ secrets.STORE_PASSWORD }} # The password for your keystore file
+                keyPassword=${{ secrets.STORE_PASSWORD }} # The password for your keystore file
                 keyAlias=upload
                 storeFile=./key.jks
                 EOF
           - name: Decode key file
-            run: echo "${{ secrets.KEY_JKS }}" | openssl base64 -d -out ./android/app/key.jks
+            run: echo "${{ secrets.KEY_JKS }}" | openssl base64 -d -out ./android/app/key.jks # The base64 encoded keystore file
           - name: Decode sec json file
-            run: echo "${{ secrets.SEC_JSON }}" | openssl base64 -d -out ./android/sec.json
+            run: echo "${{ secrets.SEC_JSON }}" | openssl base64 -d -out ./android/sec.json # The base64 encoded service account JSON file
           - uses: subosito/flutter-action@v2
           - run: flutter packages pub get
           - run: flutter build appbundle --release
@@ -208,7 +205,7 @@ Now, let's automate these processes with GitHub Actions:
           FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD: ${{ secrets.FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD }}
 
         steps:
-        - uses: actions/checkout@v3
+        - uses: actions/checkout@v4
         - uses: subosito/flutter-action@v2
         - run: flutter packages pub get
         - run: flutter build ipa --release
@@ -342,7 +339,7 @@ We will create a new workflow that will bump the `pubspec.yaml` version, create 
     This workflow will be triggered whenever a new tag with the format `release/*` is pushed to the repository. It will create a new release with the tag name and the generated release notes. We use the `release-action` to create the release. The action will generate the release notes based on the commit messages since the last tag.
 3. We are not done yet. Triggering the tag workflow won't trigger the release workflow yet. This is because of a restriction of GitHub.  Follow this [guide](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic) to create a token with the `repo` scope. Add the token as a secret in your repository with the name `PAT`. Now we need to add the token to the `checkout` action in the `tag.yml` file:
     ```yaml
-      # Remove this part
+      # Remove from here 
     permissions:
       # Give the default GITHUB_TOKEN write permission to commit and push the
       # added or changed files to the repository.
@@ -368,6 +365,104 @@ We will create a new workflow that will bump the `pubspec.yaml` version, create 
     ```
     This will trigger the `Build and Deploy` workflow whenever the `Tag Workflow` finished successfully.
 
+## Creating the Promote Workflow
+The idea is to have a workflow that will promote a release to a specific track in the PlayStore. This can be useful if you want to promote a release from the internal track to the production track or from TestFlight to the AppStore for example.
+   1. Add this lane to the `android/fastlane/Fastfile`:
+  ```ruby
+    platform :android do
+        # ...
+        desc "Promote version"
+        lane :promote do |options|
+          skip = options[:skip] || true
+          version = flutter_version()
+          upload_to_play_store(
+            track: "internal",
+            track_promote_to: "production",
+            skip_upload_metadata: false,
+            skip_upload_images: skip,
+            skip_upload_screenshots: skip,
+            track_promote_release_status: "draft",
+            version_code: version["version_code"],
+            version_name: version["version_name"],
+          )
+      end
+    end
+  ```
+  Add this lane to the `ios/fastlane/Fastfile`:
+  ```ruby
+    platform :ios do
+      # ...
+      desc "Promote version"
+      lane :promote do |options|
+        skip = options[:skip] || true
+        version = flutter_version()
+        deliver(
+          submit_for_review: false,
+          automatic_release: true,
+          force: true,
+          skip_screenshots: skip,
+          skip_binary_upload: true,
+          overwrite_screenshots: true,
+          app_version: version["version_name"],
+          precheck_include_in_app_purchases: false
+        )
+      end
+    end
+  ```
+  We added a promote lane both for Android and iOS. The lane will promote the release from the internal track or TestFlight to the production track in the PlayStore and AppStore respectively. We also added an option to skip the screenshots upload. We will handle this in the next part of the guide.
+
+ 2. Before you can promote a release you need to have at least one release already uploaded and published manually. Make sure to have a release in the internal track in the PlayStore and TestFlight in the AppStore.
+ 3. Run `fastlane promote skip:true` to start the lane and promote your app to the respective track. Make sure to run the command in the respective platform folder.
+ 4. After you successfully promoted the release you can now automate this process with GitHub Actions.
+ 5. Create a new file in the `.github/workflows` directory, e.g. `promote.yml`.
+ 6. Paste this content into the `promote.yml` file:
+    ```yaml
+    name: Promote Release
+    on:
+      workflow_dispatch:
+        inputs:
+          skip:
+            type: boolean
+            description: skip screenshots
+            default: true
+
+    jobs:
+      android:
+        concurrency:
+          group: ${{ github.workflow }}-${{ github.ref }}-android
+          cancel-in-progress: true
+        name: Promote Android
+        runs-on: self-hosted
+
+        steps:
+          - uses: actions/checkout@v4
+          - name: Decode sec json file
+            run: echo "${{ secrets.SEC_JSON }}" | openssl base64 -d -out ./android/sec.json
+          - name: Promote Release on Play Store
+            uses: maierj/fastlane-action@v2.3.0
+            with:
+              subdirectory: android
+              lane: promote
+
+      ios:
+        concurrency:
+          group: ${{ github.workflow }}-${{ github.ref }}-ios
+          cancel-in-progress: true
+        name: Promote iOS
+        runs-on: self-hosted
+        env:
+            FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD: ${{ secrets.FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD }}
+        steps:
+          - uses: actions/checkout@v4
+          - name: Promote Release on App Store
+            uses: maierj/fastlane-action@v2.3.0
+            with:
+              subdirectory: ios
+              lane: promote skip:${{ github.event.inputs.skip }}
+    ```
+    This workflow can be triggered manually and accepts an input if you also want to upload screenshots (This will be handled in the third part of the guide). The workflow will take a release and promote it to the respective track in the PlayStore or AppStore.
+  7. Trigger the workflow manually by going to the Actions tab in your GitHub repository and selecting the `Promote Release` workflow. Click on the `Run workflow` button and select the branch or tag you want to promote. Make sure the version you want to promote is already uploaded and published in the respective track. You can do that with the `deploy` workflow.
+
 ## Recap
 
 So how does the whole process look like now? Whenever you want to release a new version of your app, you can trigger the `Tag Release` workflow manually. You can choose between `major`, `minor`, `patch` and `none`. The workflow will bump the version in the `pubspec.yaml` file, create a new commit and tag and push the changes to the repository. This will trigger the `Release Workflow` which will create a new release with the tag name and the generated release notes. We then want to deploy this version by triggering the `Build and Deploy` workflow manually and selecting the new tag in the ref input. This way you can pinpoint the exact version you want to deploy.
@@ -376,3 +471,6 @@ So how does the whole process look like now? Whenever you want to release a new 
 
 And that's it! You've now set up a CI/CD pipeline for your Flutter app using Fastlane and GitHub Actions. This setup will automatically build and deploy your app to the AppStore and PlayStore. You've also automated the versioning, tagging and releasing process with GitHub Actions. Time to kick back, relax, and let automation handle the repetitive tasks.
 
+### About the Author
+#### Dario Digregorio - Senior Flutter Developer
+Dario is a passionate and innovative Senior Flutter Developer at [NTT Data](https://de.nttdata.com/) with a keen interest in crafting seamless user experiences using cutting-edge technology. You can find him on [LinkedIn](https://www.linkedin.com/in/dario-digregorio-064696241/) and [GitHub](https://github.com/dario-digregorio).

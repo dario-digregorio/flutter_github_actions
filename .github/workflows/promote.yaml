@@ -1,0 +1,42 @@
+name: Promote Release
+on:
+  workflow_dispatch:
+    inputs:
+      skip:
+        type: boolean
+        description: skip screenshots
+        default: true
+
+jobs:
+  android:
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-android
+      cancel-in-progress: true
+    name: Promote Android
+    runs-on: self-hosted
+    
+    steps:
+      - uses: actions/checkout@v4
+      - name: Decode sec json file
+        run: echo "${{ secrets.SEC_JSON }}" | openssl base64 -d -out ./android/sec.json
+      - name: Promote Release on Play Store
+        uses: maierj/fastlane-action@v2.3.0
+        with:
+          subdirectory: android
+          lane: promote
+
+  ios:
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-ios
+      cancel-in-progress: true
+    name: Promote iOS
+    runs-on: self-hosted
+    env:
+        FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD: ${{ secrets.FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Promote Release on App Store
+        uses: maierj/fastlane-action@v2.3.0
+        with:
+          subdirectory: ios
+          lane: promote skip:${{ github.event.inputs.skip }}

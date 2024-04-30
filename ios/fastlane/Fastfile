@@ -23,4 +23,19 @@ platform :ios do
       ipa: "../build/ios/ipa/flutter_github_actions.ipa" # Path to your IPA file
     )
   end
+
+  lane :promote do |options|
+    skip = options[:skip] || true
+    version = flutter_version()
+    deliver(
+      submit_for_review: false,
+      automatic_release: true,
+      force: true,
+      skip_screenshots: skip,
+      skip_binary_upload: true,
+      overwrite_screenshots: true,
+      app_version: version["version_name"],
+      precheck_include_in_app_purchases: false
+    )
+  end
 end

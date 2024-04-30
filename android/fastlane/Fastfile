@@ -18,6 +18,7 @@ default_platform(:android)
 platform :android do
   desc "Deploy a new version to the Google Play"
   lane :deploy do
+    version = flutter_version()
     upload_to_play_store(
       track: 'internal',
       skip_upload_metadata: true,
@@ -25,8 +26,24 @@ platform :android do
       skip_upload_screenshots: true,
       release_status: "draft",
       aab: '../build/app/outputs/bundle/release/app-release.aab',
-      version_code: flutter_version()["version_code"],
-      version_name: flutter_version()["version_name"] + "-internal+" + flutter_version()["version_code"],
+      version_code: version["version_code"],
+      version_name: version["version_name"] + "-internal+" + version["version_code"],
+    )
+  end
+
+  desc "Promote version"
+  lane :promote do |options|
+    skip = options[:skip] || true
+    version = flutter_version()
+    upload_to_play_store(
+      track: "internal",
+      track_promote_to: "production",
+      skip_upload_metadata: false,
+      skip_upload_images: skip,
+      skip_upload_screenshots: skip,
+      track_promote_release_status: "draft",
+      version_code: version["version_code"],
+      version_name: version["version_name"],
     )
   end
 end
