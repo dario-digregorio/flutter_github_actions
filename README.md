@@ -1,23 +1,23 @@
 # Flutter CI/CD with Fastlane and GitHub Actions: The Basics (Part 1)
 
 ![Flutter CI/CD](docs/flutter_cicd.png)
-## Introduction
+# Introduction
 
-If you're looking to streamline your Flutter app's deployment to the AppStore and PlayStore, you're in the right spot. We'll use Fastlane and GitHub Actions to automate our workflow. By the end of this tutorial, you'll have a automated pipeline that builds and deploys your Flutter app to your preferred App Stores. This guide will skip all the setup and configuration of Fastlane and GitHub Actions, and will focus on the Flutter and Workflow specific parts of the setup.
+If you're looking to streamline your Flutter app's deployment to the AppStore and PlayStore, you've come to the right place. We'll be using Fastlane and GitHub Actions to automate our workflow. By the end of this tutorial, you'll have an automated pipeline that builds and deploys your Flutter app to your preferred app stores. In this guide we will skip all the setup and configuration of Fastlane and GitHub Actions, and will focus on the Flutter and workflow specific parts of the setup.
 
 Repository: [Flutter App CI/CD with Fastlane and GitHub Actions](https://github.com/dario-digregorio/flutter_github_actions)
 
-## Prerequisites
+# Prerequisites
 
 - A Flutter app
-- Flavors and Environment Variables set up in your Flutter app. You can follow the [official Flutter guide](https://flutter.dev/docs/deployment/flavors) to set this up.
+- Flavors and environment Variables set up in your Flutter app. You can follow the [official Flutter guide](https://flutter.dev/docs/deployment/flavors) to set this up.
 - You should be able to build a release version for Android and iOS. You can follow the [Android guide](https://flutter.dev/docs/deployment/android) and [iOS guide](https://docs.flutter.dev/deployment/ios) to set this up.
-- A GitHub account with your app's repo.
+- A GitHub account with your app repo.
 - Fastlane installed on your local machine. You can follow the [official Fastlane installation guide](https://docs.fastlane.tools/getting-started/ios/setup/).
-- AppStore and PlayStore accounts ready for deployment with your apps project setup.
+- AppStore and PlayStore accounts ready for deployment with your app project setup.
 - Follow the initial [CD Flutter Guide](https://docs.flutter.dev/deployment/cd#local-setup) to setup the Fastlane folders in your Flutter project.
 
-When you finished all the prerequisites, you should have following project structure with Fastlane folders in both iOS and Android folders:
+When you have completed all the prerequisites, you should have the following project structure with Fastlane folders in both iOS and Android folders:
 
 ```
 - android
@@ -29,16 +29,16 @@ When you finished all the prerequisites, you should have following project struc
     - Appfile
     - Fastfile
 ```
-> Note: In this guide I will use the basic fastlane commands. It is highly recommended to use Fastlane with `bundle`. Read more about it in the Fastlane documentation
+> Note: In this guide I will use the basic Fastlane commands. It is highly recommended to use Fastlane with `bundle`. Read more about it in this Fastlane documentation.
 > 
 ---
 
-## Setting Up The Fastfiles and Environment
+## Setting up the Fastfiles and environment
 Now we will setup the Fastfiles for both iOS and Android. We will define lanes for deploying the app to the AppStore and PlayStore.
 
-### Android
+## Android
 
-1. Open `android/Gemfile` and add the flutter version plugin which we will need to extract the version from the pubspec.yaml file:
+1. Open `android/Gemfile` and add the flutter version plugin we need to extract the version from the pubspec.yaml file:
 
     ```ruby
     # ...
@@ -47,20 +47,20 @@ Now we will setup the Fastfiles for both iOS and Android. We will define lanes f
     end
     ```
 
-2. Open `android/fastlane/Appfile` and define the path to your service account JSON file and the package name of your app:
+2. Open `android/fastlane/Appfile` and set the path to your service account JSON file and the package name of your app:
 
     ```ruby
     json_key_file("path/to/your/service-account.json")
     package_name("com.example.yourapp")
     ```
-    You created the Service Account JSON file in the [CD Flutter Guide](https://docs.flutter.dev/deployment/cd#local-setup). Make sure to exclude the file from your git repository.
+    You have created the service account JSON file in the [CD Flutter Guide](https://docs.flutter.dev/deployment/cd#local-setup). Make sure to exclude the file from your git repository.
 
 3. Open `android/fastlane/Fastfile` and define the `deploy` lane (delete the existing content):
     ```ruby
     default_platform(:android)
 
     platform :android do
-      desc "Deploy a new version to the Google Play"
+      desc "Deploy a new version to Google Play"
       lane :deploy do
         version = flutter_version()
         upload_to_play_store(
@@ -78,8 +78,8 @@ Now we will setup the Fastfiles for both iOS and Android. We will define lanes f
     ```
     More information about the `upload_to_play_store` action can be found [here](https://docs.fastlane.tools/actions/upload_to_play_store/).
 4. Run `bundle install` in the `android` directory to install the required gems.
-5. Run `fastlane supply init` to initialize the PlayStore metadata. With this you can update the metadata like app description or screenshots without leaving your IDE. You can skip this step if you don't want to upload metadata. 
-6. Build the app with `flutter build appbundle --release` and make sure the AAB file is located in the path you defined in the Fastfile and to use release signing keys. Follow the [Android guide](https://flutter.dev/docs/deployment/android) to set up the release signing.
+5. Run `fastlane supply init` to initialize the PlayStore metadata. This will allow you to update the metadata like app description or screenshots without leaving your IDE. You can skip this step if you don't want to upload any metadata. 
+6. Build the app with `flutter build appbundle --release` and make sure the AAB file is located in the path you defined in the Fastfile and to use the release signing keys. Follow the [Android guide](https://flutter.dev/docs/deployment/android) to set up release signing.
 7. Before deploying your first release you need to have at least one release already uploaded and published manually.
 8. Run `fastlane deploy` to start the lane and deploy your app to the PlayStore. 
 
@@ -88,9 +88,9 @@ Depending on your setup, you might need to adjust the `upload_to_play_store` act
 **Google Play Store Release Dashboard**
 ![Play Store Deploy](docs/deploy_playstore.png)
 
-### iOS
+## iOS
 
-1. Open `ios/Gemfile` and add the flutter version plugin again:
+1. Open `ios/Gemfile` and add the Flutter version plugin again:
 
     ```ruby
     # ...
@@ -99,7 +99,7 @@ Depending on your setup, you might need to adjust the `upload_to_play_store` act
     end
     ```
 
-2. Open `ios/fastlane/Appfile` and define app identifier, the Apple ID of your Apple Developer account and the Team ID:
+2. Open `ios/fastlane/Appfile` and define app the identifier, the Apple ID of your Apple developer account, and the team ID:
 
     ```ruby
     app_identifier("com.example.yourapp")
@@ -114,7 +114,7 @@ Depending on your setup, you might need to adjust the `upload_to_play_store` act
     platform :ios do
       lane :deploy do
         pilot(
-          skip_waiting_for_build_processing: true, # Skip waiting so we don't waist precious build time
+          skip_waiting_for_build_processing: true, # Skip waiting so we don't waste precious build time
           changelog: "This build was uploaded using fastlane",
           ipa: "../build/ios/ipa/flutter_github_actions.ipa" # Path to your IPA file
         )
@@ -125,19 +125,19 @@ Depending on your setup, you might need to adjust the `upload_to_play_store` act
 4. Run `bundle install` in the `ios` directory to install the required gems.
 5. Run `fastlane deliver init` to initialize the AppStore metadata. With this you can update the metadata like app description or screenshots without leaving your IDE. You can skip this step if you don't want to upload metadata.
 6. Make sure you have already created an app in AppStore Connect.
-7. Depending on the account you use you might need to further authenticate with an app-specific password. See the [Fastlane documentation](https://docs.fastlane.tools/getting-started/ios/authentication/) for more information.
+7. Depending on the account you are using you might need to further authenticate with an app-specific password. Refer to the [Fastlane documentation](https://docs.fastlane.tools/getting-started/ios/authentication/) for more information.
 8. Run `fastlane deploy` to start the lane and deploy your app to the AppStore. 
 
-Depending on your setup, you might need to adjust the actions to match your requirements. Consider also to use the actions 
+Depending on your setup, you might need to customize the actions to suit your requirements. Also consider to use the actions.
 
 **AppStore TestFlight Builds Dashboard**
 
 ![AppStore Deploy](docs/deploy_appstore.png)
-### Setting Up GitHub Actions
+## Setting up GitHub Actions
 
-Now that Fastlane is set up and you successfully run the lanes manually on your local machine, we can automate the deployment process with GitHub Actions.
+Now that Fastlane is set up and you have successfully run the lanes manually on your local machine, we can automate the deployment process using GitHub Actions.
 
-> Note: To make the guide more simple we will use a self-hosted runner in this guide. You can also use the GitHub hosted runners. Make sure to adjust the paths and the Fastfile accordingly and to also add all necessary tools to the runner.
+> Note: For simplicity, we will use a self-hosted runner in this guide. You can also use the GitHub hosted runners. Make sure to adjust the paths and the Fastfile accordingly and also add any necessary tools to the runner.
 
 Now, let's automate these processes with GitHub Actions:
 
@@ -147,7 +147,7 @@ Now, let's automate these processes with GitHub Actions:
     - `STORE_PASSWORD`: The password for your keystore file.
     - `KEY_JKS`: The base64 encoded keystore file.
     - `SEC_JSON`: The base64 encoded service account JSON file.
-    - `FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD`: The app-specific password for your Apple Developer account.
+    - `FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD`: The app-specific password for your Apple developer account.
   
     To encode the files you can use the following command:
     ```bash
@@ -216,23 +216,23 @@ Now, let's automate these processes with GitHub Actions:
             subdirectory: ios
     ```
 
-    Let me break down what this workflow does. There are two jobs, `build_android` and `build_ios`. Each job builds and deploys the app to the PlayStore and AppStore respectively. The jobs are triggered manually by the `workflow_dispatch` event.
-    To build the Android app we need to create the `key.properties` file and decode the keystore and service account JSON file. We then build the app bundle and run the Fastlane action with the `deploy` lane. The iOS job is simpler, we just build the IPA file and run the Fastlane action with the `deploy` lane.
+    Let me break down what this workflow does. There are two jobs, `build_android` and `build_ios`. Each job builds and deploys the app to the PlayStore and AppStore respectively. The jobs are manually triggered by the `workflow_dispatch` event.
+    To build the Android app we need to create the `key.properties` file and decode the keystore and service account JSON file. Then we build the app bundle and run the Fastlane action with the `deploy` lane. The iOS job is simpler, we just build the IPA file and run the Fastlane action with the `deploy` lane.
 
 5. Adjust the `flutter-version` as per your project's requirements.
 6. Trigger the workflow manually by going to the Actions tab in your GitHub repository and selecting the `Build and Deploy` workflow. Click on the `Run workflow` button and select the branch you want to deploy.
-7. Wait and watch the magic happen! ✨ 
+7. Sit back and watch the magic happen! ✨ 
    
    ![GitHub Actions](docs/deploy.png)
 
-Whenever you want to deploy a new version of your app, simply edit the version in the `pubspec.yaml` and push your changes to the main branch and trigger the workflow manually. The workflow will build and deploy your app to the AppStore and PlayStore automatically.
+Whenever you want to deploy a new version of your app, just edit the version in `pubspec.yaml`, push your changes to the main branch and trigger the workflow manually. The workflow automatically will build and deploy your app to the AppStore and PlayStore automatically.
 
-### Build Number
-For some projects it makes sense to use the build number which is currently used on the respective platform. For this there are actions to get the build number from the AppStore and PlayStore. You can use the `app_store_build_number` and `google_play_track_version_codes` actions to get the build number. You can then use this build number to set the version code in the Fastfile.
+## Build number
+For some projects it makes sense to use the build number currently used on the respective platform. There are actions to retrieve the build number from the AppStore and PlayStore. You can use the `app_store_build_number` and `google_play_track_version_codes` actions to get the build number. You can then use this build number to set the version code in the Fastfile.
 
-### Conclusion
+# Conclusion
 
-And that's it! You've now set up a CI/CD pipeline for your Flutter app using Fastlane and GitHub Actions. This setup will automatically build and deploy your app to the AppStore and PlayStore. Time to kick back, relax, and let automation handle the repetitive tasks.
+And that's it! You've now set up a CI/CD pipeline for your Flutter app using Fastlane and GitHub Actions. This setup will automatically build and deploy your app to the AppStore and PlayStore. Time to sit back, relax, and let automation take care of the repetitive tasks.
 
 ![Overview](docs/overview_part1.png)
 
