@@ -1,6 +1,6 @@
 # Flutter CI/CD with Fastlane and GitHub Actions: The Basics (Part 1)
 
-![Flutter CI/CD](docs/flutter_cicd.png)
+![Flutter CI/CD](docs/flutter_cicd.jpg)
 # Introduction
 
 If you're looking to streamline your Flutter app's deployment to the AppStore and PlayStore, you've come to the right place. We'll be using Fastlane and GitHub Actions to automate our workflow. By the end of this tutorial, you'll have an automated pipeline that builds and deploys your Flutter app to your preferred app stores. In this guide we will skip all the setup and configuration of Fastlane and GitHub Actions, and will focus on the Flutter and workflow specific parts of the setup.
@@ -249,7 +249,7 @@ Dario is a passionate and innovative Senior Flutter Developer at [NTT Data](http
 
 # Flutter CI/CD with Fastlane and GitHub Actions: Releases (Part 2)
 
-![Flutter CI/CD](docs/flutter_cicd.png)
+![Flutter CI/CD](docs/flutter_cicd.jpg)
 
 ## Introduction
 
