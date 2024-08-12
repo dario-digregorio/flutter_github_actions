@@ -253,14 +253,14 @@ Dario is a passionate and innovative Senior Flutter Developer at [NTT Data](http
 
 ## Introduction
 
-In the previous article, we have seen how to setup Fastlane and GitHub Actions for the example app. In this article, we will see how to automate the release process further with versioning, GitHub Releases and promoting using Fastlane and GitHub Actions.
+In the previous article, we saw how to setup Fastlane and GitHub Actions for the sample app. In this article, we will see how to further automate the release process further with versioning, GitHub Releases and promotion using Fastlane and GitHub Actions.
 
-Repository: [Flutter App CI/CD with Fastlane and GitHub Actions](https://github.com/dario-digregorio/flutter_github_actions)
+Repository: [Flutter App CI/CD using Fastlane and GitHub Actions](https://github.com/dario-digregorio/flutter_github_actions)
 
 ## Prerequisites
 - Follow the first part of the guide to setup Fastlane and GitHub Actions.
 
-## Creating the Tag Workflow
+## Creating the Tag workflow
 
 We will create a new workflow that will bump the `pubspec.yaml` version, create a new tag and pushes the changes to the repository.
 
@@ -296,7 +296,7 @@ We will create a new workflow that will bump the `pubspec.yaml` version, create 
             - uses: actions/checkout@v4
               with:
                   ref: ${{ github.head_ref }}
-                  fetch-depth: 0 # Fetch all history for tags and branches
+                  fetch-depth: 0 # Fetch the complete history for tags and branches
             - uses: stikkyapp/update-pubspec-version@v2
               id: update-pubspec-version
               with:
@@ -308,13 +308,13 @@ We will create a new workflow that will bump the `pubspec.yaml` version, create 
                 commit_user_name: GitHub Actions
                 tagging_message: release/v${{ steps.update-pubspec-version.outputs.new-version }}
       ```
-    This workflow can be triggered manually and accepts an input to which action you want to perform. There are four options: `major`, `minor`, `patch` and `none`. Each action will bump the version accordingly. See [this](https://semver.org/) for more information about semantic versioning. We use the `update-pubspec-version` action to bump the version in the `pubspec.yaml` file and the `git-auto-commit-action` to commit the changes and create a new tag with the format `release/v1.0.0`. Each workflow run will always bump the build number.
+    This workflow can be triggered manually and accepts an input on what action you want to perform. There are four options: `major`, `minor`, `patch` and `none`. Each action will bump the version accordingly. See [this](https://semver.org/) for more information on semantic versioning. We use the `update-pubspec-version` action to bump the version in the `pubspec.yaml` file and the `git-auto-commit-action` to commit the changes and create a new tag with the format `release/v1.0.0`. Each run of the workflow will always bump the build number.
 3. Trigger the workflow manually by going to the Actions tab in your GitHub repository and selecting the `Tag Release` workflow. Click on the `Run workflow` button and select the branch you want to tag.
-4. Wait and watch the magic happen! ✨ You should see a new commit and tag in your repository.
+4. Sit back and watch the magic happen! ✨ You should see a new commit and tag in your repository.
 
 ![Tag](docs/tag.png)
 
-## Creating the Release Workflow
+## Creating the Release workflow
 1. Create a new file in the `.github/workflows` directory, e.g. `release.yml`.
 2. Add the following content to the `release.yml` file:
     ```yaml
@@ -340,8 +340,8 @@ We will create a new workflow that will bump the `pubspec.yaml` version, create 
             tag: ${{ github.ref }}
             generateReleaseNotes: true
     ```
-    This workflow will be triggered whenever a new tag with the format `release/*` is pushed to the repository. The action will create a new release with the tag name and generate the release notes based on the commit messages and merged branches since the last tag.
-3. We are not done yet. Triggering the tag workflow won't trigger the release workflow yet. This is because of a restriction of GitHub.  Follow this [guide](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic) to create a token with the `repo` scope. Add the token as a secret in your repository with the name `PAT`. Now we need to add the token to the `checkout` action in the `tag.yml` file:
+    This workflow is triggered whenever a new tag with the format `release/*` is pushed to the repository. The action will create a new release with the tag name and generate the release notes based on the commit messages and merged branches since the last tag.
+3. We are not done yet. Triggering the Tag workflow doesn't trigger the release workflow yet. This is because due to a limitation of GitHub.  Follow this [guide](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic) to create a token with the scope `repo` scope. Add the token to your repository as a secret with the name `PAT`. Now we need to add the token to the `checkout` action in the `tag.yml` file:
     ```yaml
       # Remove from here 
     permissions:
@@ -354,13 +354,13 @@ We will create a new workflow that will bump the `pubspec.yaml` version, create 
       - uses: actions/checkout@v4
         with:
             ref: ${{ github.head_ref }}
-            fetch-depth: 0 # Fetch all history for tags and branches
+            fetch-depth: 0 # Fetch the complete history for tags and branches
             token: ${{ secrets.PAT }}
     ```
-    Since the `checkout` action uses the `GITHUB_TOKEN` by default, we need to add the `PAT` token to the action to trigger the release workflow. We then can remove the `permissions` part. It is better to trigger the workflow only manually otherwise the workflow will run a loop.
-4. Now trigger again the Tag workflow and you should see a new release in your repository after the `Release Workflow` finished successfully.
+    Since the `checkout` action uses the `GITHUB_TOKEN` by default, we need to add the `PAT` token to the action to trigger the Release workflow. We can then remove the `permissions` part. It is better to trigger the workflow manually only, otherwise the workflow will run in a loop.
+4. Now trigger the `Tag` workflow again and you should see a new release in your repository after the `Release workflow` has finished successfully.
    ![Tag](docs/release.png)
-5. To trigger the `Build and Deploy` workflow whenever a new tag is created. Add this to the `deploy.yml` file:
+5. To trigger the `Build and Deploy` workflow whenever a new tag is created. Add this to your `deploy.yml` file:
     ```yaml
       on:
         workflow_dispatch:
@@ -368,11 +368,11 @@ We will create a new workflow that will bump the `pubspec.yaml` version, create 
           tags:
             - 'release/*'
     ```
-    This will trigger the `Build and Deploy` workflow whenever the `Tag Workflow` creates a new tag. This way you can automate the whole process from versioning to deployment.
+    This will trigger the `Build and Deploy` workflow whenever the `Tag workflow` creates a new tag. This way you can automate the whole process from versioning to deployment.
 
 ## Creating the Promote Workflow
-The idea is to have a workflow that will promote a release to a specific track in the PlayStore. This can be useful if you want to promote a release from the internal track to the production track or from TestFlight to the AppStore for example.
-   1. Add this lane to the `android/fastlane/Fastfile`:
+The idea is to have a workflow that promotes a release to a specific track in the PlayStore. This can be useful if you want to promote a release from the internal track, to the production track or from TestFlight to the AppStore for example.
+   1. Add this lane to `android/fastlane/Fastfile`:
       ```ruby
         platform :android do
             # ...
@@ -393,7 +393,7 @@ The idea is to have a workflow that will promote a release to a specific track i
           end
         end
       ```
-      Add this lane to the `ios/fastlane/Fastfile`:
+      Add this lane to `ios/fastlane/Fastfile`:
       ```ruby
         platform :ios do
           # ...
@@ -414,11 +414,11 @@ The idea is to have a workflow that will promote a release to a specific track i
           end
         end
       ```
-      We added a promote lane both for Android and iOS. The lane will promote the release from the internal track or TestFlight to the production track in the PlayStore and AppStore respectively. We also added an option to skip the screenshots upload.
+      We added a promote lane for both Android and iOS. The lane will promote the release from the internal track or TestFlight to the production track in the PlayStore and AppStore respectively. We also added an option to skip the screenshots upload.
 
- 1. Before you can promote a release you need to have at least one release already uploaded and published manually. Make sure to have a release in the production track in the PlayStore and the app published in the AppStore.
+ 1. Before you can promote a release, you must have uploaded and published at least one release manually already. Make sure you have a release on the production track in the PlayStore and the app published in the AppStore.
  2. Run `fastlane promote skip:true` to start the lane and promote your the version to the respective track. Make sure to run the command in the respective platform folder.
- 3. After you successfully promoted the release you can now automate this process with GitHub Actions.
+ 3. After successfully promoting the release you can now automate the process using GitHub Actions.
  4. Create a new file in the `.github/workflows` directory, e.g. `promote.yml`.
  5. Paste this content into the `promote.yml` file:
     ```yaml
@@ -465,18 +465,18 @@ The idea is to have a workflow that will promote a release to a specific track i
               subdirectory: ios
               lane: promote skip:${{ github.event.inputs.skip }}
     ```
-    This workflow can be triggered manually and accepts an input if you also want to upload screenshots. The workflow will take a release and promote it to the respective track in the PlayStore or AppStore.
-  6. Trigger the workflow manually by going to the Actions tab in your GitHub repository and selecting the `Promote Release` workflow. Click on the `Run workflow` button and select the branch or tag you want to promote. Make sure the version you want to promote is already uploaded and published in the respective track. You can do that with the `deploy` workflow.
+    This workflow can be triggered manually and accepts an input if you want to upload screenshots as well. The workflow will take a release and promote it to the respective track in the PlayStore or AppStore.
+  6. Trigger the workflow manually by going to the Actions tab in your GitHub repository and selecting the `Promote Release` workflow. Click on the `Run workflow` button and select the branch or tag you want to promote. Make sure that the version you want to promote has already been uploaded and published to the respective track. You can do this with the `Deploy` workflow.
 
 ## Recap
 
 ![Overview](docs/overview_part2.png)
 
-So how does the whole process look like now? Whenever you want to release a new version of your app, you can trigger the `Tag Release` workflow manually. You can choose between `major`, `minor` and `patch`. The workflow will bump the version in the `pubspec.yaml` file, create a new commit and tag and push the changes to the repository. This will trigger the `Release Workflow` which will create a new release with the tag name and the generated release notes. This will also trigger the `Build and Deploy` workflow which will build and deploy the app to the AppStore and PlayStore. After you successfully deployed the app you can trigger the `Promote Release` workflow manually. This will promote the release to the respective track in the PlayStore and AppStore.
+So how does the whole process look like now? Whenever you want to release a new version of your app, you can manually trigger the `Tag Release` workflow. You can choose between `major`, `minor` and `patch`. The workflow will bump the version in the `pubspec.yaml` file, create a new commit and tag and push the changes to the repository. This will trigger the `Release workflow` which will create a new release with the tag name and generated release notes. This will also trigger the `Build and Deploy` workflow which will build and deploy the app to the AppStore and PlayStore. After you have successfully deployed the app, you can manually trigger the `Promote Release` workflow. This will promote the release to the respective track in the PlayStore and AppStore.
 
 ## Conclusion
 
-And that's it! You've now set up a CI/CD pipeline for your Flutter app using Fastlane and GitHub Actions. This setup will automatically build and deploy your app to the AppStore and PlayStore. You've also automated the versioning, tagging and releasing process with GitHub Actions. Time to kick back, relax, and let automation handle the repetitive tasks.
+And that's it! You've now set up a CI/CD pipeline for your Flutter app using Fastlane and GitHub Actions. This setup will automatically build and deploy your app to the AppStore and PlayStore. You've also automated the versioning, tagging and release process with GitHub Actions. Time to kick back, relax, and let automation take care of the repetitive tasks.
 
 ### About the Author
 #### Dario Digregorio - Senior Flutter Developer
